@@ -15,7 +15,7 @@ public partial class EnrollmentList
 
     public int EnrollmentId { get; set; }
 
-    public string? Grade { get; set; }
+    public int? Grade { get; set; }
 
     public DateTime? GradeDate { get; set; }
 

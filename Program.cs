@@ -7,7 +7,7 @@ namespace TheSchoolOfProgrammingDB
     {
         static void Main(string[] args)
         {
-            AppDbContext_Methods.PrintAllStudents();
+            AppDbContext_Methods.ChangeGrade();
         }
         public static int GetUserInput() //Då jag ska ta in mycket userInput's i heltal så gjorde jag tidigt en metod för just detta
             {

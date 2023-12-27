@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +11,48 @@ namespace TheSchoolOfProgrammingDB.Models;
 
 public partial class AppDbContext_Methods : DbContext
 {
+    public static void GetStuInfo()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var studentIdList = dbContext.Students.ToList();
+        while (true)
+        {
+            Console.WriteLine("(999) - StudentID list");
+            Console.WriteLine("(990) - Exit to main menu");
+            Console.Write("Please enter a Student ID for student info: ");
+            int studentID = GetUserInput(); //Tar in ett id från användaren
+
+            var studentInfo = dbContext.GetStudentInfo(studentID).SingleOrDefault(); //Kör den mot GetStudentInfo som kör mot min Stored Procedure
+
+            if (studentInfo != null)
+            {
+                Console.Clear();
+                Console.WriteLine($"Student Name: {studentInfo.StuFirstName} {studentInfo.StuLastName}");
+                Console.WriteLine($"Date of Birth: {studentInfo.StuDoB}");
+                Console.Write("Press any key when ready: ");
+                Console.ReadKey();
+            }
+            else if (studentID == 990)
+            {
+                break;
+            }
+            else if (studentID == 999)
+            {
+                foreach (var id in studentIdList.OrderBy(i =>i.StudentId))
+                {
+                    Console.WriteLine($"ID: {id.StudentId}");
+                }
+            }
+            else
+            {
+                Console.Clear();
+                Console.WriteLine("Student not found.");
+                Console.Write("Press any key when ready: ");
+                Console.ReadKey();
+            }
+        }
+
+    }
     public static void PrintEmployees()
     {
         AppDbContext dbContext = new AppDbContext();
@@ -112,6 +156,54 @@ public partial class AppDbContext_Methods : DbContext
         }
 
 
+    }
+    public static void PrintDepSalerys()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var empDepInfo = from employee in dbContext.Employees
+                         join profession in dbContext.Professions on employee.FkProfessionId equals profession.ProfessionId
+                         join departments in dbContext.Departments on profession.FkDepartmentId equals departments.DepartmentId
+                         select new
+                         {
+                             depID = departments.DepartmentId,
+                             eSalery = employee.Salery,
+                         };
+
+        Console.Clear();
+        Console.WriteLine(" -- Admin Team --");
+        Console.WriteLine($"Total salery for Admin department: {empDepInfo.Where(d => d.depID == 2).Sum(s => s.eSalery)} SEK/month");
+        Console.WriteLine("\n -- Education Team --");
+        Console.WriteLine($"Total salery for Education department: {empDepInfo.Where(d => d.depID == 1).Sum(s => s.eSalery)} SEK/month");
+        Console.WriteLine("\n -- Management --");
+        Console.WriteLine($"Total salery for Management department: {empDepInfo.Where(d => d.depID == 3).Sum(s => s.eSalery)} SEK/month");
+        Console.Write("Press any key when ready: ");
+        Console.ReadKey();
+    }
+    public static void PrintDepAvSalery()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var empDepInfo = from employee in dbContext.Employees
+                         join profession in dbContext.Professions on employee.FkProfessionId equals profession.ProfessionId
+                         join departments in dbContext.Departments on profession.FkDepartmentId equals departments.DepartmentId
+                         select new
+                         {
+                             depName = departments.DepartmentName,
+                             eSalery = employee.Salery,
+                         };
+
+        var avgSaleryByDepartment = empDepInfo.GroupBy(d => d.depName)
+                                             .Select(group => new
+                                             {
+                                                 Department = group.Key,
+                                                 AverageSalery = group.Average(item => item.eSalery)
+                                             });
+        Console.Clear();
+        foreach (var department in avgSaleryByDepartment)
+        {
+            Console.WriteLine($"Average salary for {department.Department}: {department.AverageSalery} SEK/month\n");
+        }
+        Console.Write("Press any key when ready: ");
+        Console.ReadKey();
     }
     public static void AddEmployee() //Metoden för att lägga till data i Employee tabellen
     {
@@ -417,7 +509,281 @@ public partial class AppDbContext_Methods : DbContext
         Console.WriteLine("Press any key when done: ");
         Console.ReadKey();
     }
+    public static void PrintActiveCourses()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var activeCourses = from courses in dbContext.Courses
+                            where courses.CourseStatus == "A"
+                            orderby courses.SubjectName
+                            select new
+                            {
+                                subject = courses.SubjectName
+                            };
+        int i = 1;
+        foreach (var course in activeCourses)
+        {
+            Console.WriteLine($"{i++}. {course.subject}");
+        }
+    }
+    public static void SetGrade()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var allEnrollments = (from enrollments in dbContext.EnrollmentLists
+                              join students in dbContext.Students on enrollments.FkStudentId equals students.StudentId
+                              join employee in dbContext.Employees on enrollments.FkEmployeeId equals employee.EmployeeId
+                              join courses in dbContext.Courses on enrollments.FkCourseId equals courses.CourseId
+                              where enrollments.Grade == null
+                              select new
+                              {
+                                  sFirstName = students.StuFirstName,
+                                  sLastName = students.StuLastName,
+                                  enrollID = enrollments.EnrollmentId,
+                                  efkClassID = enrollments.FkClassId,
+                                  efkEmployeeID = enrollments.FkEmployeeId,
+                                  efkStudentID = enrollments.FkStudentId,
+                                  efkCourseID = enrollments.FkCourseId,
+                                  sGrade = enrollments.Grade,
+                                  gradeDate = enrollments.GradeDate,
+                                  eFirstName = employee.EmpFirstName,
+                                  eLastName = employee.EmpLastName,
+                                  subject = courses.SubjectName
+                              }).ToList();
+        try
+        {
+            using (var transaction = dbContext.Database.BeginTransaction())
+            {
+                try
+                {
+                    while (true)
+                    {
+                        int i = 1;
+                        int addedGrade;
+                        foreach (var s in allEnrollments)
+                        {
+                            Console.WriteLine($"({i++}) - {s.sLastName}, {s.sFirstName} - {s.subject}");
+                        }
+                        Console.Write("Please select which enrollment/student you would like to set grade for: ");
+                        var studentToGrade = GetUserInput() - 1;
 
+                        while (true)
+                        {
+                            Console.Clear();
+                            Console.WriteLine($"You have selected: {allEnrollments[studentToGrade].sLastName}, {allEnrollments[studentToGrade].sFirstName}" +
+                            $" in course: {allEnrollments[studentToGrade].subject}");
+                            Console.Write("Please select a grade from 1-5, where 5 is the highest grade there is: ");
+                            addedGrade = GetUserInput();
+                            if (addedGrade <= 5)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                Console.WriteLine("You need to enter 1-5 please.");
+                                Console.Write("Press any key when ready: ");
+                                Console.ReadKey();
+                            }
+                        }
+                        Console.Clear();
+
+                        Console.WriteLine($"You will add grade {addedGrade} to course {allEnrollments[studentToGrade].subject} for" +
+                            $" student: {allEnrollments[studentToGrade].sLastName}, {allEnrollments[studentToGrade].sFirstName}\n");
+                        Console.WriteLine($"The grade will be set by employee: {allEnrollments[studentToGrade].eLastName}, {allEnrollments[studentToGrade].eFirstName}" +
+                            $" since this person is listed as the teacher for this subject." +
+                            $" Grade date will be set as todays date: {DateTime.Now} This can't be changed.");
+                        Console.WriteLine("If you would like to change this please contact system administrator for update of the course plan\n");
+                        Console.WriteLine("(1) - Save");
+                        Console.WriteLine("(0) - Exit without saving");
+                        Console.Write("Please confirm all the details above before you save this to the database: ");
+                        int userConf = GetUserInput();
+                        if (userConf == 1)
+                        {
+                            DateTime date = DateTime.Now;
+                            var updatedEnroll = new EnrollmentList
+                            {
+                                EnrollmentId = allEnrollments[studentToGrade].enrollID,
+                                FkStudentId = allEnrollments[studentToGrade].efkStudentID,
+                                FkEmployeeId = allEnrollments[studentToGrade].efkEmployeeID,
+                                FkClassId = allEnrollments[studentToGrade].efkClassID,
+                                FkCourseId = allEnrollments[studentToGrade].efkCourseID,
+                                Grade = addedGrade,
+                                GradeDate = date,
+                            };
+                            dbContext.Update(updatedEnroll);
+                            dbContext.SaveChanges();
+                            transaction.Commit();
+
+                            Console.WriteLine("Database updated!");
+                            Console.Write("Press any key when ready: ");
+                            Console.ReadKey();
+                            break;
+                        }
+                        else if (userConf == 0)
+                        {
+                            Console.WriteLine("No changes added!");
+                            Console.Write("Press any key when ready: ");
+                            Console.ReadKey();
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid input, menu reboot.");
+                            Console.Write("Press any key when ready: ");
+                            Console.ReadKey();
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    throw e;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Transaction not completed, see {e.Message}");
+            throw;
+        }
+    }
+    public static void ChangeGrade()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var allEnrollments = (from enrollments in dbContext.EnrollmentLists
+                              join students in dbContext.Students on enrollments.FkStudentId equals students.StudentId
+                              join employee in dbContext.Employees on enrollments.FkEmployeeId equals employee.EmployeeId
+                              join courses in dbContext.Courses on enrollments.FkCourseId equals courses.CourseId
+                              where enrollments.Grade <= 5 
+                              select new 
+                              {
+                                  sFirstName = students.StuFirstName,
+                                  sLastName = students.StuLastName,
+                                  enrollID = enrollments.EnrollmentId,
+                                  efkClassID = enrollments.FkClassId,
+                                  efkEmployeeID = enrollments.FkEmployeeId,
+                                  efkStudentID = enrollments.FkStudentId,
+                                  efkCourseID = enrollments.FkCourseId,
+                                  sGrade = enrollments.Grade,
+                                  gradeDate = enrollments.GradeDate,
+                                  eFirstName = employee.EmpFirstName,
+                                  eLastName = employee.EmpLastName,
+                                  subject = courses.SubjectName
+                              }).ToList();
+        while (true)
+        {
+            int i = 1;
+            foreach (var s in allEnrollments)
+            {
+                Console.WriteLine($"-- ({i++}) -----------\n{s.sLastName}, {s.sFirstName} - {s.subject}\n" +
+                    $"Current grade: {s.sGrade}\nGrade was given: {s.gradeDate}\n");
+            }
+            Console.Write("Please select which enrollment/student you would like change grade for: ");
+            var studentToGrade = GetUserInput() - 1;
+            int changedGrade;
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine($"You have selected: {allEnrollments[studentToGrade].sLastName}, {allEnrollments[studentToGrade].sFirstName}" +
+                $" in course: {allEnrollments[studentToGrade].subject} with current grade: {allEnrollments[studentToGrade].sGrade}");
+                Console.Write("Please select a grade from 1-5, where 5 is the highest grade there is: ");
+                changedGrade = GetUserInput();
+                if (changedGrade <= 5)
+                {
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("You need to enter 1-5 please.");
+                    Console.Write("Press any key when ready: ");
+                    Console.ReadKey();
+                }
+            }
+            Console.Clear();
+            Console.WriteLine($"You will change grade from {allEnrollments[studentToGrade].sGrade} to {changedGrade} " +
+                $"in course {allEnrollments[studentToGrade].subject} for" +
+                $" student: {allEnrollments[studentToGrade].sLastName}, {allEnrollments[studentToGrade].sFirstName}\n");
+            Console.WriteLine($"The grade will be set by employee: {allEnrollments[studentToGrade].eLastName}, {allEnrollments[studentToGrade].eFirstName}" +
+                $" since this person is listed as the teacher for this subject." +
+                $" Grade date will be set as todays date: {DateTime.Now} This can't be changed.");
+            Console.WriteLine("If you would like to change this please contact system administrator for update of the course plan\n");
+            Console.WriteLine("(1) - Save");
+            Console.WriteLine("(0) - Exit without saving");
+            Console.Write("Please confirm all the details above before you save this to the database: ");
+            int userConf = GetUserInput();
+            if (userConf == 1)
+            {
+                DateTime date = DateTime.Now;
+                var updatedEnroll = new EnrollmentList
+                {
+                    EnrollmentId = allEnrollments[studentToGrade].enrollID,
+                    FkStudentId = allEnrollments[studentToGrade].efkStudentID,
+                    FkEmployeeId = allEnrollments[studentToGrade].efkEmployeeID,
+                    FkClassId = allEnrollments[studentToGrade].efkClassID,
+                    FkCourseId = allEnrollments[studentToGrade].efkCourseID,
+                    Grade = changedGrade,
+                    GradeDate = date,
+                };
+                dbContext.Update(updatedEnroll);
+                dbContext.SaveChanges();
+                Console.WriteLine("Database updated!");
+                Console.Write("Press any key when ready: ");
+                Console.ReadKey();
+                break;
+            }
+            else if (userConf == 0)
+            {
+                Console.WriteLine("No changes added!");
+                Console.Write("Press any key when ready: ");
+                Console.ReadKey();
+                break;
+            }
+            else
+            {
+                Console.WriteLine("Invalid input, menu reboot.");
+                Console.Write("Press any key when ready: ");
+                Console.ReadKey();
+            }
+        }
+    }
+    public static void EnrollStudent()
+    {
+        AppDbContext dbContext = new AppDbContext();
+
+        var enrolledStudents = (from student in dbContext.Students
+                               join enrollment in dbContext.EnrollmentLists on student.StudentId equals enrollment.FkStudentId
+                               join employee in dbContext.Employees on enrollment.FkEmployeeId equals employee.EmployeeId
+                               join courses in dbContext.Courses on enrollment.FkCourseId equals courses.CourseId
+                               join sClass in dbContext.Classes on enrollment.FkClassId equals sClass.ClassId
+                               select new
+                               {
+                                   sFirstName = student.StuFirstName,
+                                   sLastName = student.StuLastName,
+                                   className = sClass.ClassName,
+                                   studentID = student.StudentId,
+                                   enrollID = enrollment.EnrollmentId,
+                                   efkClassID = enrollment.FkClassId,
+                                   efkEmployeeID = enrollment.FkEmployeeId,
+                                   efkStudentID = enrollment.FkStudentId,
+                                   efkCourseID = enrollment.FkCourseId,
+                                   sGrade = enrollment.Grade,
+                                   gradeDate = enrollment.GradeDate,
+                                   eFirstName = employee.EmpFirstName,
+                                   eLastName = employee.EmpLastName,
+                                   subject = courses.SubjectName
+                               }).ToList();
+
+        while (true)
+        {
+            int i = 1;
+            foreach (var s in enrolledStudents.OrderBy(s => s.studentID))
+            {
+                Console.WriteLine($"-- ({i++}) -----------\n{s.sLastName}, {s.sFirstName} - {s.subject}\n" +
+                    $"Current grade: {s.sGrade}\nGrade was given: {s.gradeDate}\n");
+            }
+            Console.Write("Please select which enrollment/student you would like change grade for: ");
+            var studentToGrade = GetUserInput() - 1;
+            int changedGrade;
+        }
+    }
     public static int GetUserInput() //Då jag ska ta in mycket userInput's i heltal så gjorde jag tidigt en metod för just detta
     {
         int userChoice;
