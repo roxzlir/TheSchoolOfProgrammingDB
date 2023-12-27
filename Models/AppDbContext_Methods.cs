@@ -79,6 +79,7 @@ public partial class AppDbContext_Methods : DbContext
                         Console.WriteLine("- Student info -");
                         Console.WriteLine("(1) - Print all students");
                         Console.WriteLine("(2) - Print student class list");
+                        Console.WriteLine("(3) - Student ID search");
                         Console.WriteLine("(0) - Exit");
                         y = GetUserInput();
                         Console.Clear();
@@ -89,6 +90,9 @@ public partial class AppDbContext_Methods : DbContext
                                 break;
                             case 2:
                                 PrintStudentsInClasses();
+                                break;
+                            case 3:
+                                GetStuInfo();
                                 break;
                             default:
                                 Console.WriteLine("Invalid choice");
