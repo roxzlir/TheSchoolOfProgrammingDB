@@ -11,6 +11,174 @@ namespace TheSchoolOfProgrammingDB.Models;
 
 public partial class AppDbContext_Methods : DbContext
 {
+    public static void Run()
+    {
+        int userMenuChoice;
+        do
+        {
+            Console.Clear();
+            Logo();
+            Console.WriteLine(" - Welcome to The School Of Programming Database - ");
+            Console.WriteLine("(1) - Employees info");
+            Console.WriteLine("(2) - Department info");
+            Console.WriteLine("(3) - Student info");
+            Console.WriteLine("(4) - Course info");
+            Console.WriteLine("(5) - Add new Student");
+            Console.WriteLine("(6) - Add new Employee");
+            Console.WriteLine("(7) - Add/Change grade");
+            Console.WriteLine("(0) - Exit");
+            Console.Write("Please select from the menu above: ");
+            userMenuChoice = Program.GetUserInput();
+            switch (userMenuChoice)
+            {
+                case 1:
+                    Console.Clear();
+                    PrintEmployees();
+                    break;
+                case 2:
+                    int i;
+                    while (true)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("- Department info -");
+                        Console.WriteLine("(1) - Employees in every department");
+                        Console.WriteLine("(2) - Total monthly salery expens/department");
+                        Console.WriteLine("(3) - Averege monthly salery expens/department");
+                        Console.WriteLine("(0) - Exit");
+                        i = GetUserInput();
+                        Console.Clear();
+                        switch (i)
+                        {
+                            case 1:
+ 
+                                PrintEmpDepartments();
+                                break;
+                            case 2:
+                                PrintDepSalerys();
+                                break;
+                            case 3:
+                                PrintDepAvSalery();
+                                break;
+                            default:
+                                Console.WriteLine("Invalid choice");
+                                Console.Write("Press any key to continue: ");
+                                Console.ReadKey();
+                                break;
+                        }
+                        if (i == 0)
+                        {
+                            break;
+                        }
+                    }
+                    break;
+                case 3:
+                    int y;
+                    while (true)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("- Student info -");
+                        Console.WriteLine("(1) - Print all students");
+                        Console.WriteLine("(2) - Print student class list");
+                        Console.WriteLine("(0) - Exit");
+                        y = GetUserInput();
+                        Console.Clear();
+                        switch (y)
+                        {
+                            case 1:
+                                PrintAllStudents();
+                                break;
+                            case 2:
+                                PrintStudentsInClasses();
+                                break;
+                            default:
+                                Console.WriteLine("Invalid choice");
+                                Console.Write("Press any key to continue: ");
+                                Console.ReadKey();
+                                break;
+                        }
+                        if (y == 0)
+                        {
+                            break;
+                        }
+                    }
+                    break;
+                case 4:
+                    int j;
+                    while (true)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("- Course info -");
+                        Console.WriteLine("(1) - Print all available courses");
+                        Console.WriteLine("(2) - Print all unavailable courses");
+                        Console.WriteLine("(0) - Exit");
+                        j = GetUserInput();
+                        Console.Clear();
+                        switch (j)
+                        {
+                            case 1:
+                                PrintACourses();
+                                break;
+                            case 2:
+                                PrintNaCourses();
+                                break;
+                            default:
+                                Console.WriteLine("Invalid choice");
+                                Console.Write("Press any key to continue: ");
+                                Console.ReadKey();
+                                break;
+                        }
+                        if (j == 0)
+                        {
+                            break;
+                        }
+                    }
+                    break;
+                case 5:
+                    Console.WriteLine("- Add a new student to database -");
+                    AddStudent();
+                    break;
+                case 6:
+                    AddEmployee();
+                    break;
+                case 7:
+                    int l;
+                    while (true)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("- Grades -");
+                        Console.WriteLine("(1) - Set first time grade");
+                        Console.WriteLine("(2) - Change existing grade");
+                        Console.WriteLine("(0) - Exit");
+                        l = GetUserInput();
+                        Console.Clear();
+                        switch (l)
+                        {
+                            case 1:
+                                SetGrade();
+                                break;
+                            case 2:
+                                ChangeGrade();
+                                break;
+                            default:
+                                Console.WriteLine("Invalid choice");
+                                Console.Write("Press any key to continue: ");
+                                Console.ReadKey();
+                                break;
+                        }
+                        if (l == 0)
+                        {
+                            break;
+                        }
+                    }
+                    break;
+                case 0:
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice");
+                    break;
+            }
+        } while (userMenuChoice != 0);
+    }
     public static void GetStuInfo()
     {
         AppDbContext dbContext = new AppDbContext();
@@ -509,11 +677,27 @@ public partial class AppDbContext_Methods : DbContext
         Console.WriteLine("Press any key when done: ");
         Console.ReadKey();
     }
-    public static void PrintActiveCourses()
+    public static void PrintACourses()
     {
         AppDbContext dbContext = new AppDbContext();
         var activeCourses = from courses in dbContext.Courses
                             where courses.CourseStatus == "A"
+                            orderby courses.SubjectName
+                            select new
+                            {
+                                subject = courses.SubjectName
+                            };
+        int i = 1;
+        foreach (var course in activeCourses)
+        {
+            Console.WriteLine($"{i++}. {course.subject}");
+        }
+    }
+    public static void PrintNaCourses()
+    {
+        AppDbContext dbContext = new AppDbContext();
+        var activeCourses = from courses in dbContext.Courses
+                            where courses.CourseStatus == "NA"
                             orderby courses.SubjectName
                             select new
                             {
@@ -801,7 +985,21 @@ public partial class AppDbContext_Methods : DbContext
         }
         return userChoice;
     }
-
+    public static void Logo() //Tyckte det skulle vara lite roligt med en logo så lekte lite med det också.
+    {
+        string logo = @"         
+         _______
+        |.-----.|  The
+        ||     ||  School
+        ||_____||  Of
+        `--)-(--`  Programming
+       __[=== o]___ -> T.S.O.P
+      |:::::::::::|\ 
+      `-=========-`()";
+        Console.ForegroundColor = ConsoleColor.DarkYellow;
+        Console.WriteLine(logo);
+        Console.ResetColor();
+    }
 }
 
 
