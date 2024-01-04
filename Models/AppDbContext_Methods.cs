@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace TheSchoolOfProgrammingDB.Models;
 
@@ -19,7 +21,7 @@ public partial class AppDbContext_Methods : DbContext
             Console.Clear();
             Logo();
             Console.WriteLine(" - Welcome to The School Of Programming Database - ");
-            Console.WriteLine("(1) - Employees info");
+            Console.WriteLine("(1) - Full employee details list");
             Console.WriteLine("(2) - Department info");
             Console.WriteLine("(3) - Student info");
             Console.WriteLine("(4) - Course info");
@@ -59,11 +61,6 @@ public partial class AppDbContext_Methods : DbContext
                             case 3:
                                 PrintDepAvSalery();
                                 break;
-                            default:
-                                Console.WriteLine("Invalid choice");
-                                Console.Write("Press any key to continue: ");
-                                Console.ReadKey();
-                                break;
                         }
                         if (i == 0)
                         {
@@ -94,11 +91,6 @@ public partial class AppDbContext_Methods : DbContext
                             case 3:
                                 GetStuInfo();
                                 break;
-                            default:
-                                Console.WriteLine("Invalid choice");
-                                Console.Write("Press any key to continue: ");
-                                Console.ReadKey();
-                                break;
                         }
                         if (y == 0)
                         {
@@ -124,11 +116,6 @@ public partial class AppDbContext_Methods : DbContext
                                 break;
                             case 2:
                                 PrintNaCourses();
-                                break;
-                            default:
-                                Console.WriteLine("Invalid choice");
-                                Console.Write("Press any key to continue: ");
-                                Console.ReadKey();
                                 break;
                         }
                         if (j == 0)
@@ -162,11 +149,6 @@ public partial class AppDbContext_Methods : DbContext
                                 break;
                             case 2:
                                 ChangeGrade();
-                                break;
-                            default:
-                                Console.WriteLine("Invalid choice");
-                                Console.Write("Press any key to continue: ");
-                                Console.ReadKey();
                                 break;
                         }
                         if (l == 0)
@@ -228,7 +210,7 @@ public partial class AppDbContext_Methods : DbContext
     public static void PrintEmployees()
     {
         AppDbContext dbContext = new AppDbContext();
-        var empInfo = from employee in dbContext.Employees
+        var empInfo = from employee in dbContext.Employees //Här skapar tar jag inte både från Employee och från Profession för att kunna få fram korrekt data
                       join profession in dbContext.Professions on employee.FkProfessionId equals profession.ProfessionId
                       orderby profession.ProfessionId
                       select new
@@ -236,7 +218,7 @@ public partial class AppDbContext_Methods : DbContext
                           eFirstName = employee.EmpFirstName,
                           eLastName = employee.EmpLastName,
                           proName = profession.ProTitle,
-                          yearsHired = EF.Functions.DateDiffYear(employee.HiredDate, DateTime.Now),
+                          yearsHired = EF.Functions.DateDiffYear(employee.HiredDate, DateTime.Now), //Gör detta för att få ut antal år istället för bara datum
                           dateHired = employee.HiredDate
                       };
 
@@ -247,12 +229,12 @@ public partial class AppDbContext_Methods : DbContext
             DateTime date = Convert.ToDateTime(employee.dateHired); //Ville få bort dem tomma klockslagen från utskriften så sparar ner alla datum från employee.dateHired till
             string dateOnly = date.ToString("yyyy-MM-dd");  //date och gör sedan om dem till en string med formatet jag önskar.
             Console.WriteLine($"Employee: {employee.eFirstName} {employee.eLastName}\nWork title: {employee.proName}\nYears hired: {employee.yearsHired}\n" +
-                $"Employed since: {dateOnly})\n-----------------------");
+                $"(employed since: {dateOnly})\n-----------------------");
         }
         Console.WriteLine("Press any key when done: ");
         Console.ReadKey();
-    }
-    public static void PrintEmpDepartments()
+    } //Metod för att skriva ut alla employee's samt deras profession title
+    public static void PrintEmpDepartments() //Här skriver jag ut antal employees/department samt kan man se alla employees mer detaljerat i varje department
     {
         AppDbContext dbContext = new AppDbContext();
         var empDepInfo = from employee in dbContext.Employees
@@ -372,7 +354,7 @@ public partial class AppDbContext_Methods : DbContext
         Console.Clear();
         foreach (var department in avgSaleryByDepartment)
         {
-            Console.WriteLine($"Average salary for {department.Department}: {department.AverageSalery} SEK/month\n");
+            Console.WriteLine($"Average salary for employee in {department.Department} is: {department.AverageSalery} SEK/month\n");
         }
         Console.Write("Press any key when ready: ");
         Console.ReadKey();
@@ -632,7 +614,7 @@ public partial class AppDbContext_Methods : DbContext
         Console.Clear();
         foreach (var p in allStudents)
         {
-            Console.WriteLine($"{i++}. {p.sLastName}, {p.sFirstName}\nDate of Birth: {p.sDoB}");
+            Console.WriteLine($"-- {i++} ----------\n{p.sLastName}, {p.sFirstName}\nDate of Birth: {p.sDoB}");
             Console.WriteLine("---------------");
         }
         Console.Write("Press any key when ready: ");
@@ -641,6 +623,7 @@ public partial class AppDbContext_Methods : DbContext
     }
     public static void PrintStudentsInClasses()
     {
+        Console.Clear();
         AppDbContext dbContext = new AppDbContext();
 
         var stuInClass = from enrollment in dbContext.EnrollmentLists
@@ -658,25 +641,25 @@ public partial class AppDbContext_Methods : DbContext
         Console.WriteLine("--- BinaryBuddies ---\n");
         foreach (var p in stuInClass.Where(c => c.cName == "BinaryBuddies"))
         {
-            Console.WriteLine($"{i++} {p.sLastName}, {p.sFirstName}");
+            Console.WriteLine($"{i++}. {p.sLastName}, {p.sFirstName}");
         }
         int y = 1;
         Console.WriteLine("\n--- GitRDone ---\n");
         foreach (var p in stuInClass.Where(c => c.cName == "GitRDone"))
         {
-            Console.WriteLine($"{y++} {p.sLastName}, {p.sFirstName}");
+            Console.WriteLine($"{y++}. {p.sLastName}, {p.sFirstName}");
         }
         int j = 1;
         Console.WriteLine("\n--- CodeSlingers ---\n");
         foreach (var p in stuInClass.Where(c => c.cName == "CodeSlingers"))
         {
-            Console.WriteLine($"{j++} {p.sLastName}, {p.sFirstName}");
+            Console.WriteLine($"{j++}.  {p.sLastName}, {p.sFirstName}");
         }
         Console.WriteLine("\n--- TheC#s ---\n");
         int k = 1;
         foreach (var p in stuInClass.Where(c => c.cName == "TheC#s"))
         {
-            Console.WriteLine($"{k++} {p.sLastName}, {p.sFirstName}");
+            Console.WriteLine($"{k++}.  {p.sLastName}, {p.sFirstName}");
         }
         Console.WriteLine("Press any key when done: ");
         Console.ReadKey();
@@ -696,6 +679,8 @@ public partial class AppDbContext_Methods : DbContext
         {
             Console.WriteLine($"{i++}. {course.subject}");
         }
+        Console.Write("Press any key when ready: ");
+        Console.ReadKey();
     }
     public static void PrintNaCourses()
     {
@@ -712,6 +697,8 @@ public partial class AppDbContext_Methods : DbContext
         {
             Console.WriteLine($"{i++}. {course.subject}");
         }
+        Console.Write("Press any key when ready: ");
+        Console.ReadKey();
     }
     public static void SetGrade()
     {
@@ -935,6 +922,28 @@ public partial class AppDbContext_Methods : DbContext
     public static void EnrollStudent()
     {
         AppDbContext dbContext = new AppDbContext();
+        var availableClasses = (from sClass in dbContext.Classes
+                               select new
+                               {
+                                   className = sClass.ClassName,
+                                   classID = sClass.ClassId
+                               }).ToList();
+
+        var availableStudents = (from student in dbContext.Students
+                                select new
+                                {
+                                    sFirstName = student.StuFirstName,
+                                    sLastName = student.StuLastName,
+                                    sDoB = student.StuDoB,
+                                    sID = student.StudentId
+                                }).ToList();
+        var availableCourses = (from course in dbContext.Courses
+                               where course.CourseStatus == "A"
+                               select new
+                               {
+                                   courseName = course.SubjectName,
+                                   courseID = course.CourseId
+                               }).ToList();
 
         var enrolledStudents = (from student in dbContext.Students
                                join enrollment in dbContext.EnrollmentLists on student.StudentId equals enrollment.FkStudentId
@@ -959,18 +968,139 @@ public partial class AppDbContext_Methods : DbContext
                                    subject = courses.SubjectName
                                }).ToList();
 
+
+
+
         while (true)
         {
-            int i = 1;
-            foreach (var s in enrolledStudents.OrderBy(s => s.studentID))
-            {
-                Console.WriteLine($"-- ({i++}) -----------\n{s.sLastName}, {s.sFirstName} - {s.subject}\n" +
-                    $"Current grade: {s.sGrade}\nGrade was given: {s.gradeDate}\n");
+            int j = 1;
+            foreach (var s in availableStudents)
+            {  
+                Console.WriteLine($"-- ({j++}) ----------\n{s.sLastName}, {s.sFirstName}\nDate of birth: {s.sDoB}");
             }
-            Console.Write("Please select which enrollment/student you would like change grade for: ");
-            var studentToGrade = GetUserInput() - 1;
-            int changedGrade;
+            Console.Write("Please select which student you would like to enroll for: ");
+            var selectedStudent = GetUserInput() - 1; //Tar ut vilken student som man vill enrolla.
+
+
+            var result = enrolledStudents.Find(x => x.efkStudentID == availableStudents[selectedStudent].sID);
+
+            if (result == null)
+            {
+                Console.WriteLine($"Student {availableStudents[selectedStudent].sLastName}, {availableStudents[selectedStudent].sFirstName} is not enrolled in any courses today and is not" +
+                $"added to a class either!\n");
+                Console.WriteLine("Press any key to continue: ");
+                Console.ReadKey();
+
+                int m = 1;
+                foreach (var c in availableClasses)
+                {
+                    Console.WriteLine($"({m++}). {c.className}");
+                }
+                Console.WriteLine($"Please select which class to enroll {availableStudents[selectedStudent].sLastName}, {availableStudents[selectedStudent].sFirstName} in: ");
+                var selectedClass = GetUserInput() - 1;
+
+                int k = 1;
+                foreach (var c in availableCourses)
+                {
+                    Console.WriteLine($"({k++}). {c.courseName}");
+                }
+                Console.WriteLine("This is all the available courses, please select which course you would like to enroll student in: ");
+                var selectedCourse = GetUserInput() - 1; //Tar ut vilken kurs man vill enrolla till.
+
+                Console.WriteLine($"You have selected to enroll student: {availableStudents[selectedStudent].sLastName}, {availableStudents[selectedStudent].sFirstName}\n" +
+                    $"in class: {availableClasses[selectedClass].className}\nto course: {availableCourses[selectedCourse].courseName}");
+                Console.WriteLine("(1). Save changes");
+                Console.WriteLine("(0). Exit without saving");
+                Console.WriteLine("Please confirm to save changes to database: ");
+                int userConf = GetUserInput();
+                if (userConf == 1)
+                {
+                    var newEnrollment2 = new EnrollmentList
+                    {
+                        FkStudentId = availableStudents[selectedStudent].sID,
+                        FkClassId = availableClasses[selectedClass].classID,
+                        FkCourseId = availableCourses[selectedCourse].courseID
+                    };
+                    dbContext.Add(newEnrollment2);
+                    //dbContext.SaveChanges();
+                    Console.WriteLine("Database updated!");
+                    Console.Write("Press any key to exit to main menu: ");
+                    Console.ReadKey();
+                    break;
+                }
+                else if (userConf == 0)
+                {
+                    Console.WriteLine("No changes will be made to database!");
+                    Console.Write("Press any key to exit to main menu: ");
+                    Console.ReadKey();
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("You need to enter either 1 or 0");
+                    Console.Write("Press any key to restart enrollment process: ");
+                    Console.ReadKey();
+                }
+            }
+            else
+            {
+                Console.Clear();
+
+                Console.WriteLine($"This is all the courses student {availableStudents[selectedStudent].sLastName}, {availableStudents[selectedStudent].sFirstName} is enrolled in today:\n");
+                foreach (var enroll in enrolledStudents.Where(x => x.efkStudentID == availableStudents[selectedStudent].sID))
+                {
+                    Console.WriteLine($"{enroll.subject}");
+                }
+                Console.WriteLine("\nThis is all the available courses: ");
+                int l = 1;
+                foreach (var c in availableCourses)
+                {
+                    Console.WriteLine($"({l++}). {c.courseName}");
+                }
+                Console.Write("Please select which course you would like to enroll student in: ");
+                var selectedCourse = GetUserInput() - 1; //Tar ut vilken kurs man vill enrolla till.
+
+                Console.WriteLine($"You have selected to enroll student: {availableStudents[selectedStudent].sLastName}, {availableStudents[selectedStudent].sFirstName}\n" +
+                $"to course: {availableCourses[selectedCourse].courseName}");
+
+                Console.WriteLine("(1). Save changes");
+                Console.WriteLine("(0). Exit without saving");
+                Console.WriteLine("Please confirm to save changes to database: ");
+                int userConf = GetUserInput();
+                if (userConf == 1)
+                {
+                    var newEnrollment = new EnrollmentList
+                    {
+                        FkStudentId = availableStudents[selectedStudent].sID,
+                        FkCourseId = availableCourses[selectedCourse].courseID,
+                        FkClassId = enrolledStudents[selectedStudent].efkClassID
+                    };
+                    dbContext.Add(newEnrollment);
+                    //dbContext.SaveChanges();
+                    Console.WriteLine("Database updated!");
+                    Console.Write("Press any key to exit to main menu: ");
+                    Console.ReadKey();
+                    break;
+                }
+                else if (userConf == 0)
+                {
+                    Console.WriteLine("No changes will be made to database!");
+                    Console.Write("Press any key to exit to main menu: ");
+                    Console.ReadKey();
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("You need to enter either 1 or 0");
+                    Console.Write("Press any key to restart enrollment process: ");
+                    Console.ReadKey();
+                }
+            }
         }
+    } //** MÅSTE IN I RUN Metod för att enrolla en student i nya kurser samt om man ej satt en klass på en elev får man enrolla den med.
+    public static void EnrollEmployee()//** MÅSTE IN I RUN
+    {
+
     }
     public static int GetUserInput() //Då jag ska ta in mycket userInput's i heltal så gjorde jag tidigt en metod för just detta
     {
