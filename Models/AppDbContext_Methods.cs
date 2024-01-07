@@ -366,7 +366,8 @@ public partial class AppDbContext_Methods : DbContext
     public static void AddEmployee() //Metoden för att lägga till data i Employee tabellen
     {
         AppDbContext dbContext = new AppDbContext();
-        
+
+        Console.Clear();
             Console.WriteLine("Please fill out these details to add a new employee to the database");
             Console.Write("First name: ");
             string empFirstName = Console.ReadLine();
@@ -901,7 +902,7 @@ public partial class AppDbContext_Methods : DbContext
                     Grade = changedGrade,
                     GradeDate = date,
                 };
-                dbContext.Update(updatedEnroll);
+                dbContext.Update(updatedEnroll);  //Kör med update och tar alla värden från tidigare för att uppdatera endast kolumnen Grade
                 dbContext.SaveChanges();
                 Console.WriteLine("Database updated!");
                 Console.Write("Press any key when ready: ");
