@@ -27,7 +27,8 @@ public partial class AppDbContext_Methods : DbContext
             Console.WriteLine("(4) - Course info");
             Console.WriteLine("(5) - Add new Student");
             Console.WriteLine("(6) - Add new Employee");
-            Console.WriteLine("(7) - Add/Change grade");
+            Console.WriteLine("(7) - Enroll student in course");
+            Console.WriteLine("(8) - Add/Change grade");
             Console.WriteLine("(0) - Exit");
             Console.Write("Please select from the menu above: ");
             userMenuChoice = Program.GetUserInput();
@@ -132,7 +133,10 @@ public partial class AppDbContext_Methods : DbContext
                     AddEmployee();
                     break;
                 case 7:
-                    int l;
+                    EnrollStudent();
+                    break;
+                case 8:
+                    int m;
                     while (true)
                     {
                         Console.Clear();
@@ -140,9 +144,9 @@ public partial class AppDbContext_Methods : DbContext
                         Console.WriteLine("(1) - Set first time grade");
                         Console.WriteLine("(2) - Change existing grade");
                         Console.WriteLine("(0) - Exit");
-                        l = GetUserInput();
+                        m = GetUserInput();
                         Console.Clear();
-                        switch (l)
+                        switch (m)
                         {
                             case 1:
                                 SetGrade();
@@ -151,7 +155,7 @@ public partial class AppDbContext_Methods : DbContext
                                 ChangeGrade();
                                 break;
                         }
-                        if (l == 0)
+                        if (m == 0)
                         {
                             break;
                         }
@@ -459,7 +463,7 @@ public partial class AppDbContext_Methods : DbContext
         AppDbContext dbContext = new AppDbContext();
         //Skapar en student
 
-
+        Console.Clear();
         Console.WriteLine("Please fill out these details to add a new student to the database");
         Console.Write("First name: ");
         string stuFirstName = Console.ReadLine();
@@ -598,7 +602,7 @@ public partial class AppDbContext_Methods : DbContext
             Console.Write("Press any key to exit to main menu: ");
             Console.ReadKey();
         }
-    }
+    } //Metod för att lägga till ny Student
     public static void PrintAllStudents()
     {
         AppDbContext dbContext = new AppDbContext();
@@ -626,38 +630,38 @@ public partial class AppDbContext_Methods : DbContext
         Console.Clear();
         AppDbContext dbContext = new AppDbContext();
 
-        var stuInClass = from enrollment in dbContext.EnrollmentLists
-                           join student in dbContext.Students on enrollment.FkStudentId equals student.StudentId
-                           join classes in dbContext.Classes on enrollment.FkClassId equals classes.ClassId
-                           orderby student.StuLastName
-                           select new
-                           {
-                               cName = classes.ClassName,
-                               sFirstName = student.StuFirstName,
-                               sLastName = student.StuLastName
-                           };
+        var studentsInClass = from sClass in dbContext.Classes
+                              join enroll in dbContext.EnrollmentLists on sClass.ClassId equals enroll.FkClassId
+                              join student in dbContext.Students on enroll.FkStudentId equals student.StudentId
+                              orderby student.StuLastName
+                              select new
+                              {
+                                  cName = sClass.ClassName,
+                                  sFirstName = student.StuFirstName,
+                                  sLastName = student.StuLastName
+                              };
 
         int i = 1;
         Console.WriteLine("--- BinaryBuddies ---\n");
-        foreach (var p in stuInClass.Where(c => c.cName == "BinaryBuddies"))
+        foreach (var p in studentsInClass.Where(c => c.cName == "BinaryBuddies"))
         {
             Console.WriteLine($"{i++}. {p.sLastName}, {p.sFirstName}");
         }
         int y = 1;
         Console.WriteLine("\n--- GitRDone ---\n");
-        foreach (var p in stuInClass.Where(c => c.cName == "GitRDone"))
+        foreach (var p in studentsInClass.Where(c => c.cName == "GitRDone"))
         {
             Console.WriteLine($"{y++}. {p.sLastName}, {p.sFirstName}");
         }
         int j = 1;
         Console.WriteLine("\n--- CodeSlingers ---\n");
-        foreach (var p in stuInClass.Where(c => c.cName == "CodeSlingers"))
+        foreach (var p in studentsInClass.Where(c => c.cName == "CodeSlingers"))
         {
             Console.WriteLine($"{j++}.  {p.sLastName}, {p.sFirstName}");
         }
         Console.WriteLine("\n--- TheC#s ---\n");
         int k = 1;
-        foreach (var p in stuInClass.Where(c => c.cName == "TheC#s"))
+        foreach (var p in studentsInClass.Where(c => c.cName == "TheC#s"))
         {
             Console.WriteLine($"{k++}.  {p.sLastName}, {p.sFirstName}");
         }
@@ -725,7 +729,7 @@ public partial class AppDbContext_Methods : DbContext
                               }).ToList();
         try
         {
-            using (var transaction = dbContext.Database.BeginTransaction())
+            using (var transaction = dbContext.Database.BeginTransaction()) //Jag använder mig av en transaction här enligt önskemål.
             {
                 try
                 {
@@ -783,7 +787,7 @@ public partial class AppDbContext_Methods : DbContext
                                 Grade = addedGrade,
                                 GradeDate = date,
                             };
-                            dbContext.Update(updatedEnroll);
+                            dbContext.Update(updatedEnroll); 
                             dbContext.SaveChanges();
                             transaction.Commit();
 
@@ -809,7 +813,7 @@ public partial class AppDbContext_Methods : DbContext
                 }
                 catch (Exception e)
                 {
-                    transaction.Rollback();
+                    transaction.Rollback(); //Om det inte skulle lyckas så kommer den köra en Rollback här!
                     throw e;
                 }
             }
@@ -922,8 +926,8 @@ public partial class AppDbContext_Methods : DbContext
     public static void EnrollStudent()
     {
         AppDbContext dbContext = new AppDbContext();
-        var availableClasses = (from sClass in dbContext.Classes
-                               select new
+        var availableClasses = (from sClass in dbContext.Classes  //Jag väljer att skapa lite olika listor för jag vill inte få dubbla utskrifter när man ska 
+                               select new                         //få välja ut vilken klass eller vilken student man vill hantera
                                {
                                    className = sClass.ClassName,
                                    classID = sClass.ClassId
@@ -978,16 +982,17 @@ public partial class AppDbContext_Methods : DbContext
             {  
                 Console.WriteLine($"-- ({j++}) ----------\n{s.sLastName}, {s.sFirstName}\nDate of birth: {s.sDoB}");
             }
-            Console.Write("Please select which student you would like to enroll for: ");
+            Console.Write("Please select which student you would like to enroll: ");
             var selectedStudent = GetUserInput() - 1; //Tar ut vilken student som man vill enrolla.
 
-
+            //Här kollar jag om den elev som valts ut redan finns med i min EnrollmentList och beroende på det så får man lägga till en klass på eleven
+            //samt att jag vill visa upp vilka kurser den redan går om den nu redan finns med i den tabellen
             var result = enrolledStudents.Find(x => x.efkStudentID == availableStudents[selectedStudent].sID);
 
             if (result == null)
             {
                 Console.WriteLine($"Student {availableStudents[selectedStudent].sLastName}, {availableStudents[selectedStudent].sFirstName} is not enrolled in any courses today and is not" +
-                $"added to a class either!\n");
+                $" added to a class either!\n");
                 Console.WriteLine("Press any key to continue: ");
                 Console.ReadKey();
 
@@ -1022,7 +1027,7 @@ public partial class AppDbContext_Methods : DbContext
                         FkCourseId = availableCourses[selectedCourse].courseID
                     };
                     dbContext.Add(newEnrollment2);
-                    //dbContext.SaveChanges();
+                    dbContext.SaveChanges();
                     Console.WriteLine("Database updated!");
                     Console.Write("Press any key to exit to main menu: ");
                     Console.ReadKey();
@@ -1076,7 +1081,7 @@ public partial class AppDbContext_Methods : DbContext
                         FkClassId = enrolledStudents[selectedStudent].efkClassID
                     };
                     dbContext.Add(newEnrollment);
-                    //dbContext.SaveChanges();
+                    dbContext.SaveChanges();
                     Console.WriteLine("Database updated!");
                     Console.Write("Press any key to exit to main menu: ");
                     Console.ReadKey();
@@ -1097,11 +1102,7 @@ public partial class AppDbContext_Methods : DbContext
                 }
             }
         }
-    } //** MÅSTE IN I RUN Metod för att enrolla en student i nya kurser samt om man ej satt en klass på en elev får man enrolla den med.
-    public static void EnrollEmployee()//** MÅSTE IN I RUN
-    {
-
-    }
+    } //Metod för att enrolla en student i nya kurser samt om man ej satt en klass på en elev får man enrolla den med.
     public static int GetUserInput() //Då jag ska ta in mycket userInput's i heltal så gjorde jag tidigt en metod för just detta
     {
         int userChoice;
